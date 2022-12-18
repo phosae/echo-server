@@ -7,5 +7,5 @@
 - `/net` return network interface list
 
 ```
-docker run --rm -d -p 8080:18080 zengxu/echo-server
+docker run --rm -d -p 18080:8080 zengxu/echo-server
 ```
