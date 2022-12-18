@@ -13,10 +13,9 @@ RUN set -ex \
     && apk add --no-cache \
     bash \
     curl
-    
+
 ARG TARGETARCH
 WORKDIR /
-ADD /ctl/qappctl-linux-$TARGETARCH /usr/bin/qappctl
 COPY --from=builder /workspace/echo-server-$TARGETARCH /echo-server
 
 ENTRYPOINT ["/echo-server"]
