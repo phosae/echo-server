@@ -65,8 +65,8 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", hello)
-	mux.HandleFunc("/echo", echo)
+	mux.HandleFunc("/", echo)
+	mux.HandleFunc("/hello", hello)
 	mux.HandleFunc("/cpu", cpu)
 	mux.HandleFunc("/mem", vmem)
 	mux.HandleFunc("/net", net)
