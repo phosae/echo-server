@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -35,6 +36,10 @@ func main() {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		req2, _ := httputil.DumpRequest(request, true)
+		log.Println("echo", string(req2))
+
 		if _, err := response.Write(rawReq); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
