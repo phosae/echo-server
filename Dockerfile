@@ -14,6 +14,8 @@ RUN set -ex \
     bash \
     curl
 
+ENV LISTEN_ADDR=":80"
+
 ARG TARGETARCH
 WORKDIR /
 COPY --from=builder /workspace/echo-server-$TARGETARCH /echo-server
