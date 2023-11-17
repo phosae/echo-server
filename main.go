@@ -99,6 +99,7 @@ func main() {
 	if envaddr := os.Getenv("LISTEN_ADDR"); envaddr != "" {
 		addr = envaddr
 	}
+	log.Println("listening on:", addr)
 	server := &http.Server{Addr: addr, Handler: instrumentMux(mux)}
 	server.ListenAndServe()
 }
