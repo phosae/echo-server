@@ -42,7 +42,7 @@ func main() {
 		}
 
 		req2, _ := httputil.DumpRequest(request, true)
-		log.Println("echo", string(req2))
+		log.Println(request.RemoteAddr, "echo", string(req2))
 
 		if code := request.URL.Query().Get("code"); len(code) > 0 {
 			statusCode, err := strconv.ParseInt(code, 10, 32)
@@ -99,7 +99,7 @@ func main() {
 	if envaddr := os.Getenv("LISTEN_ADDR"); envaddr != "" {
 		addr = envaddr
 	}
-	log.Println("listening on:", addr)
+	log.Println("listening on", addr)
 	server := &http.Server{Addr: addr, Handler: instrumentMux(mux)}
 	server.ListenAndServe()
 }
