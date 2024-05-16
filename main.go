@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -95,13 +98,36 @@ func main() {
 	mux.HandleFunc("/net", net)
 	mux.Handle("/metrics", promhttp.Handler())
 
-	var addr string = ":8080"
-	if envaddr := os.Getenv("LISTEN_ADDR"); envaddr != "" {
-		addr = envaddr
+	stop := SetupSignalHandler()
+	server := &http.Server{Handler: instrumentMux(mux)}
+	go func() {
+		addr := ":8080"
+		if envaddr := os.Getenv("LISTEN_ADDR"); envaddr != "" {
+			addr = envaddr
+		}
+		log.Println("listening on", addr)
+		server.Addr = addr
+		err := server.ListenAndServe()
+		log.Println("server.ListenAndServe returned:", err)
+	}()
+	<-stop
+
+	shutdownGracePeriod := 10 * time.Second
+	if shutdownEnv := os.Getenv("SHUTDOWN_GRACE_PERIOD"); shutdownEnv != "" {
+		shutdownDuration, err := time.ParseDuration(shutdownEnv)
+		if err == nil {
+			shutdownGracePeriod = shutdownDuration
+		}
 	}
-	log.Println("listening on", addr)
-	server := &http.Server{Addr: addr, Handler: instrumentMux(mux)}
-	server.ListenAndServe()
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
+	defer cancel()
+
+	log.Println("try shutdown server gracefully...")
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatal("err Shutdown server", err)
+	} else {
+		log.Println("server graceful shutdown ok")
+	}
 }
 
 func instrumentMux(ha http.Handler, opts ...promhttp.Option) http.Handler {
@@ -179,4 +205,17 @@ func instrumentMux(ha http.Handler, opts ...promhttp.Option) http.Handler {
 				opts...),
 			opts...),
 	)
+}
+
+func SetupSignalHandler() <-chan struct{} {
+	stop := make(chan struct{})
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		close(stop)
+		<-c
+		os.Exit(1) // second signal. Exit directly.
+	}()
+	return stop
 }
