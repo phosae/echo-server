@@ -100,6 +100,7 @@ func main() {
 
 	stop := SetupSignalHandler()
 	server := &http.Server{Handler: instrumentMux(mux)}
+	startErr := make(chan error)
 	go func() {
 		addr := ":8080"
 		if envaddr := os.Getenv("LISTEN_ADDR"); envaddr != "" {
@@ -107,13 +108,17 @@ func main() {
 		}
 		log.Println("listening on", addr)
 		server.Addr = addr
-		err := server.ListenAndServe()
-		log.Println("server.ListenAndServe returned:", err)
+		startErr <- server.ListenAndServe()
 	}()
-	<-stop
+
+	select {
+	case err := <-startErr:
+		log.Fatal(err)
+	case <-stop:
+	}
 
 	shutdownGracePeriod := 10 * time.Second
-	if shutdownEnv := os.Getenv("SHUTDOWN_GRACE_PERIOD"); shutdownEnv != "" {
+	if shutdownEnv := os.Getenv("SHUTDOWN_DEADLINE"); shutdownEnv != "" {
 		shutdownDuration, err := time.ParseDuration(shutdownEnv)
 		if err == nil {
 			shutdownGracePeriod = shutdownDuration
